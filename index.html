@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GradeCalc KE</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <div class="hero">
+    <h1>🎓 GradeCalc <span>KE</span></h1>
+    <p class="subtitle">Find out which university courses you qualify for</p>
+  </div>
+
+  <div class="container">
+
+    <div class="step-label">📝 Step 1 — Enter your KCSE grades</div>
+
+    <div id="subjects" class="subjects-grid"></div>
+
+    <button class="calc-btn" onclick="calculate()">
+      🔍 Check My Courses
+    </button>
+
+    <div id="result"></div>
+
+  </div>
+
+  <footer>Made for Kenyan students 🇰🇪</footer>
+
+  <script src="data.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
