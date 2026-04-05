@@ -35,7 +35,12 @@ function getSubjectGrades() {
       count++;
     }
   });
-  return { data, total, count };
+
+  // Aggregate = sum of best 7 subjects (max 84)
+  const best7 = Object.values(data).sort((a, b) => b - a).slice(0, 7);
+  const aggregate = best7.reduce((sum, p) => sum + p, 0);
+
+  return { data, total, count, aggregate };
 }
 
 function getMeanGrade(mean) {
@@ -53,11 +58,20 @@ function getMeanGrade(mean) {
   return "E";
 }
 
-function evaluateCourses(meanPoints) {
+function getWeightedCluster(subjectGrades, clusterSubjects, aggregate) {
+  // Raw cluster = sum of 4 cluster subject points (max 48)
+  const rawCluster = clusterSubjects.reduce((sum, sub) => sum + (subjectGrades[sub] || 0), 0);
+  // Weighted formula: (rawCluster / 48) * (aggregate / 84) * 48
+  return (rawCluster / 48) * (aggregate / 84) * 48;
+}
+
+function evaluateCourses(subjectGrades, aggregate) {
   return coursesData.map(course => {
-    const qualifiedUnis = course.universities.filter(uni => meanPoints >= uni.cutoff);
+    const weighted = getWeightedCluster(subjectGrades, course.cluster, aggregate);
+    const qualifiedUnis = course.universities.filter(uni => weighted >= uni.cutoff);
     return {
       name: course.name,
+      weightedCluster: weighted,
       qualified: qualifiedUnis.length > 0,
       universities: qualifiedUnis,
       allUniversities: course.universities
@@ -65,7 +79,7 @@ function evaluateCourses(meanPoints) {
   });
 }
 
-function renderResults(mean, grade, courseResults) {
+function renderResults(mean, grade, aggregate, courseResults) {
   const qualified = courseResults.filter(c => c.qualified);
   const notQualified = courseResults.filter(c => !c.qualified);
 
@@ -73,7 +87,7 @@ function renderResults(mean, grade, courseResults) {
     <div class="results-header">
       <div style="font-size:0.85rem; color:#94a3b8;">Your Mean Grade</div>
       <div class="mean-badge">${grade}</div>
-      <div class="mean-points">${mean.toFixed(2)} points</div>
+      <div class="mean-points">${mean.toFixed(2)} mean pts &nbsp;|&nbsp; <b>${aggregate}</b> aggregate (best 7)</div>
     </div>
     <div class="courses-label">✅ Courses You Qualify For (${qualified.length})</div>
   `;
@@ -86,7 +100,7 @@ function renderResults(mean, grade, courseResults) {
     html += `
       <div class="course-card qualified">
         <div class="course-name">🎓 ${course.name}</div>
-        <div class="uni-list">${course.universities.map(u => `• ${u.name} — cutoff ${u.cutoff}`).join("<br>")}</div>
+        <div class="uni-list">Cluster pts: <b>${course.weightedCluster.toFixed(3)}</b><br>${course.universities.map(u => `• ${u.name} — cutoff ${u.cutoff}`).join("<br>")}</div>
       </div>
     `;
   });
@@ -108,7 +122,7 @@ function renderResults(mean, grade, courseResults) {
 }
 
 function calculate() {
-  const { data, total, count } = getSubjectGrades();
+  const { data, total, count, aggregate } = getSubjectGrades();
 
   if (count === 0) {
     document.getElementById("result").innerHTML = `<p class="error-msg">⚠️ Please select at least one grade!</p>`;
@@ -117,9 +131,9 @@ function calculate() {
 
   const mean = total / count;
   const grade = getMeanGrade(mean);
-  const courseResults = evaluateCourses(mean);
+  const courseResults = evaluateCourses(data, aggregate);
 
-  renderResults(mean, grade, courseResults);
+  renderResults(mean, grade, aggregate, courseResults);
 }
 
 initSubjects();
