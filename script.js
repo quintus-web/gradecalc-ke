@@ -29,15 +29,15 @@ const subjectGroups = [
 const subjects = subjectGroups.flatMap(g => g.subjects);
 
 const categoryMap = {
-  "Medicine": ["Medicine", "Pharmacy", "Dental", "Nursing", "Clinical", "Radiography", "Physiotherapy", "Optometry", "Medical", "Health Records", "Oral Health", "Dental Technology", "Public Health"],
-  "Engineering": ["Engineering", "Architecture", "Quantity Surveying", "Construction", "Geospatial", "Marine", "Petroleum", "Landscape"],
-  "Computing": ["Computer Science", "Information Technology", "Software Engineering", "Data Science", "Telecommunication"],
-  "Law": ["Laws"],
-  "Business": ["Commerce", "Economics", "Human Resource", "Accounting"],
+  "Medicine": ["Medicine", "Surgery", "Pharmacy", "Dental", "Nursing", "Clinical", "Radiography", "Physiotherapy", "Optometry", "Medical", "Health Records", "Oral Health", "Dental Technology", "Public Health", "Nutrition", "Occupational Therapy", "Veterinary", "Midwifery"],
+  "Engineering": ["Engineering", "Architecture", "Quantity Surveying", "Construction", "Geospatial", "Marine", "Petroleum", "Landscape", "Surveying", "Urban", "Land Economics", "Real Estate"],
+  "Computing": ["Computer Science", "Information Technology", "Software Engineering", "Data Science", "Cyber Security", "Artificial Intelligence", "Business Information Technology", "Computer Engineering"],
+  "Law": ["Law", "Laws"],
+  "Business": ["Commerce", "Economics", "Human Resource", "Accounting", "Business Administration", "Finance", "Procurement", "Supply Chain", "Banking", "Entrepreneurship", "Hospitality", "Tourism"],
   "Education": ["Education"],
-  "Arts": ["Arts", "International Relations", "Criminology", "Communication", "Journalism", "Psychology", "Policy"],
-  "Agriculture": ["Agriculture", "Veterinary", "Food Science", "Environmental Health", "Microbiology"],
-  "Science": ["Mathematics", "Statistics", "Physics", "Biochemistry", "Industrial Chemistry", "Analytical Chemistry", "Actuarial", "Biomedical Science", "Forensic"]
+  "Arts": ["Arts", "International Relations", "Criminology", "Communication", "Journalism", "Psychology", "Policy", "Sociology", "Political Science", "Counselling", "Social Work", "Community Development"],
+  "Agriculture": ["Agriculture", "Food Science", "Environmental Health", "Horticulture", "Animal Science", "Agribusiness", "Forestry", "Environmental Science", "Natural Resource", "Aquatic", "Fisheries"],
+  "Science": ["Actuarial", "Mathematics", "Statistics", "Physics", "Chemistry", "Biochemistry", "Industrial Chemistry", "Analytical Chemistry", "Microbiology", "Biomedical Science", "Forensic", "Biology", "Geology", "Meteorology", "Bachelor of Science"]
 };
 
 let allCourseResults = [];
@@ -95,9 +95,8 @@ function getMeanGrade(mean) {
   return "E";
 }
 
-function getWeightedCluster(subjectGrades, clusterSubjects, aggregate) {
-  const rawCluster = clusterSubjects.reduce((sum, sub) => sum + (subjectGrades[sub] || 0), 0);
-  return (rawCluster / 48) * (aggregate / 84) * 48;
+function getWeightedCluster(subjectGrades, clusterSubjects) {
+  return clusterSubjects.reduce((sum, sub) => sum + (subjectGrades[sub] || 0), 0);
 }
 
 function getCourseCategory(courseName) {
@@ -109,7 +108,7 @@ function getCourseCategory(courseName) {
 
 function evaluateCourses(subjectGrades, aggregate) {
   return coursesData.map(course => {
-    const weighted = getWeightedCluster(subjectGrades, course.cluster, aggregate);
+    const weighted = getWeightedCluster(subjectGrades, course.cluster);
     const qualifiedUnis = course.universities.filter(uni => weighted >= uni.cutoff);
     const minCutoff = Math.min(...course.universities.map(u => u.cutoff));
     const gap = minCutoff - weighted;
