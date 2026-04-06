@@ -3,29 +3,69 @@ const gradesMap = {
   "C+": 7, "C": 6, "C-": 5, "D+": 4, "D": 3, "D-": 2, "E": 1
 };
 
-const subjects = [
-  "English", "Kiswahili", "Mathematics", "Biology",
-  "Chemistry", "Physics", "History", "Geography"
+const subjectGroups = [
+  {
+    group: "Group I — Languages & Maths",
+    subjects: ["English", "Kiswahili", "Mathematics"]
+  },
+  {
+    group: "Group II — Sciences",
+    subjects: ["Biology", "Physics", "Chemistry"]
+  },
+  {
+    group: "Group III — Humanities",
+    subjects: ["History", "Geography", "CRE", "IRE", "HRE"]
+  },
+  {
+    group: "Group IV — Technical & Applied",
+    subjects: ["Agriculture", "Computer Studies", "Home Science", "Art & Design", "Building Construction", "Power Mechanics", "Woodwork", "Metalwork", "Drawing & Design", "Aviation Technology", "Electricity"]
+  },
+  {
+    group: "Group V — Languages & Business",
+    subjects: ["Business Studies", "French", "German", "Arabic", "Music", "Kenyan Sign Language"]
+  }
 ];
+
+const subjects = subjectGroups.flatMap(g => g.subjects);
+
+const categoryMap = {
+  "Medicine": ["Medicine", "Pharmacy", "Dental", "Nursing", "Clinical", "Radiography", "Physiotherapy", "Optometry", "Medical", "Health Records", "Oral Health", "Dental Technology", "Public Health"],
+  "Engineering": ["Engineering", "Architecture", "Quantity Surveying", "Construction", "Geospatial", "Marine", "Petroleum", "Landscape"],
+  "Computing": ["Computer Science", "Information Technology", "Software Engineering", "Data Science", "Telecommunication"],
+  "Law": ["Laws"],
+  "Business": ["Commerce", "Economics", "Human Resource", "Accounting"],
+  "Education": ["Education"],
+  "Arts": ["Arts", "International Relations", "Criminology", "Communication", "Journalism", "Psychology", "Policy"],
+  "Agriculture": ["Agriculture", "Veterinary", "Food Science", "Environmental Health", "Microbiology"],
+  "Science": ["Mathematics", "Statistics", "Physics", "Biochemistry", "Industrial Chemistry", "Analytical Chemistry", "Actuarial", "Biomedical Science", "Forensic"]
+};
+
+let allCourseResults = [];
 
 function initSubjects() {
   const container = document.getElementById("subjects");
-  subjects.forEach(subject => {
-    container.innerHTML += `
-      <div class="subject-item">
-        <label>${subject}</label>
-        <select data-subject="${subject}">
-          <option value="">-- Grade --</option>
-          ${Object.keys(gradesMap).map(g => `<option value="${g}">${g}</option>`).join("")}
-        </select>
-      </div>
-    `;
+  subjectGroups.forEach(({ group, subjects: subs }) => {
+    container.innerHTML += `<div class="subject-group-label">${group}</div>`;
+    const grid = document.createElement("div");
+    grid.className = "subjects-grid";
+    subs.forEach(subject => {
+      grid.innerHTML += `
+        <div class="subject-item">
+          <label>${subject}</label>
+          <select data-subject="${subject}">
+            <option value="">-- Grade --</option>
+            ${Object.keys(gradesMap).map(g => `<option value="${g}">${g}</option>`).join("")}
+          </select>
+        </div>
+      `;
+    });
+    container.appendChild(grid);
   });
 }
 
 function getSubjectGrades() {
   let data = {}, total = 0, count = 0;
-  document.querySelectorAll("select").forEach(select => {
+  document.querySelectorAll("select[data-subject]").forEach(select => {
     const subject = select.dataset.subject;
     const grade = select.value;
     if (grade) {
@@ -35,11 +75,8 @@ function getSubjectGrades() {
       count++;
     }
   });
-
-  // Aggregate = sum of best 7 subjects (max 84)
   const best7 = Object.values(data).sort((a, b) => b - a).slice(0, 7);
   const aggregate = best7.reduce((sum, p) => sum + p, 0);
-
   return { data, total, count, aggregate };
 }
 
@@ -59,66 +96,181 @@ function getMeanGrade(mean) {
 }
 
 function getWeightedCluster(subjectGrades, clusterSubjects, aggregate) {
-  // Raw cluster = sum of 4 cluster subject points (max 48)
   const rawCluster = clusterSubjects.reduce((sum, sub) => sum + (subjectGrades[sub] || 0), 0);
-  // Weighted formula: (rawCluster / 48) * (aggregate / 84) * 48
   return (rawCluster / 48) * (aggregate / 84) * 48;
+}
+
+function getCourseCategory(courseName) {
+  for (const [cat, keywords] of Object.entries(categoryMap)) {
+    if (keywords.some(k => courseName.includes(k))) return cat;
+  }
+  return "Other";
 }
 
 function evaluateCourses(subjectGrades, aggregate) {
   return coursesData.map(course => {
     const weighted = getWeightedCluster(subjectGrades, course.cluster, aggregate);
     const qualifiedUnis = course.universities.filter(uni => weighted >= uni.cutoff);
+    const minCutoff = Math.min(...course.universities.map(u => u.cutoff));
+    const gap = minCutoff - weighted;
     return {
       name: course.name,
+      category: getCourseCategory(course.name),
       weightedCluster: weighted,
       qualified: qualifiedUnis.length > 0,
       universities: qualifiedUnis,
-      allUniversities: course.universities
+      allUniversities: course.universities,
+      minCutoff,
+      gap: gap > 0 ? gap : 0
     };
   });
+}
+
+function toggleCard(id) {
+  const el = document.getElementById(id);
+  const icon = document.getElementById("icon-" + id);
+  el.classList.toggle("hidden");
+  icon.textContent = el.classList.contains("hidden") ? "▼" : "▲";
+}
+
+function shareResults(grade, mean, qualifiedCount) {
+  const text = `🎓 My KCSE Results on GradeCalc KE\nMean Grade: ${grade} (${mean} pts)\nI qualify for ${qualifiedCount} university courses!\n\nCheck yours → https://quintus-web.github.io/gradecalc-ke`;
+  if (navigator.share) {
+    navigator.share({ title: "GradeCalc KE Results", text });
+  } else {
+    navigator.clipboard.writeText(text).then(() => alert("Results copied! Paste and share 🚀"));
+  }
+}
+
+function resetForm() {
+  document.querySelectorAll("select[data-subject]").forEach(s => s.value = "");
+  document.getElementById("result").innerHTML = "";
+  document.getElementById("filters").classList.add("hidden");
+  allCourseResults = [];
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function applyFilters() {
+  if (!allCourseResults.length) return;
+  const cat = document.getElementById("filter-category").value;
+  const status = document.getElementById("filter-status").value;
+  const search = document.getElementById("search-box").value.toLowerCase();
+
+  let filtered = allCourseResults;
+  if (cat) filtered = filtered.filter(c => c.category === cat);
+  if (status === "qualified") filtered = filtered.filter(c => c.qualified);
+  if (status === "not-qualified") filtered = filtered.filter(c => !c.qualified);
+  if (search) filtered = filtered.filter(c => c.name.toLowerCase().includes(search));
+
+  renderCourseCards(filtered);
+}
+
+function renderCourseCards(results) {
+  const qualified = results.filter(c => c.qualified);
+  const notQualified = results.filter(c => !c.qualified);
+  const container = document.getElementById("result");
+
+  const header = container.querySelector(".results-header");
+  const headerHTML = header ? header.outerHTML : "";
+
+  let html = headerHTML;
+
+  html += `<div class="courses-label">✅ Eligible Courses (${qualified.length})</div>`;
+
+  if (qualified.length === 0) {
+    html += `<p class="empty-msg">No eligible courses in this filter. Try changing the category.</p>`;
+  }
+
+  qualified.forEach(course => {
+    const id = "q-" + Math.random().toString(36).slice(2);
+    html += `
+      <div class="course-card qualified fade-in">
+        <div class="course-name" onclick="toggleCard('${id}')">
+          🎓 ${course.name}
+          <span class="toggle-icon" id="icon-${id}">▼</span>
+        </div>
+        <div class="course-meta">
+          <span class="badge badge-green">Cluster: ${course.weightedCluster.toFixed(2)} pts</span>
+          <span class="badge badge-blue">${course.category}</span>
+        </div>
+        <div class="uni-list" id="${id}">
+          ${course.universities.map(u => `
+            <div class="uni-row">
+              <span>🏫 ${u.name}</span>
+              <span class="cutoff-tag">Cutoff: ${u.cutoff}</span>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `;
+  });
+
+  if (notQualified.length > 0) {
+    html += `<div class="courses-label" style="margin-top:24px;">❌ Not Yet Eligible (${notQualified.length})</div>`;
+    notQualified.forEach(course => {
+      const id = "n-" + Math.random().toString(36).slice(2);
+      const pct = Math.min(100, Math.round((course.weightedCluster / course.minCutoff) * 100));
+      html += `
+        <div class="course-card not-qualified fade-in">
+          <div class="course-name" onclick="toggleCard('${id}')">
+            ${course.name}
+            <span class="toggle-icon" id="icon-${id}">▼</span>
+          </div>
+          <div class="course-meta">
+            <span class="badge badge-orange">Your pts: ${course.weightedCluster.toFixed(2)}</span>
+            <span class="badge badge-red">Need +${course.gap.toFixed(2)} more</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+          <div class="progress-label">${pct}% of minimum cutoff (${course.minCutoff})</div>
+          <div class="uni-list hidden" id="${id}">
+            ${course.allUniversities.map(u => `
+              <div class="uni-row">
+                <span>🏫 ${u.name}</span>
+                <span class="cutoff-tag">Cutoff: ${u.cutoff}</span>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  container.innerHTML = html;
 }
 
 function renderResults(mean, grade, aggregate, courseResults) {
   const qualified = courseResults.filter(c => c.qualified);
   const notQualified = courseResults.filter(c => !c.qualified);
 
-  let html = `
+  const headerHTML = `
     <div class="results-header">
-      <div style="font-size:0.85rem; color:#94a3b8;">Your Mean Grade</div>
-      <div class="mean-badge">${grade}</div>
-      <div class="mean-points">${mean.toFixed(2)} mean pts &nbsp;|&nbsp; <b>${aggregate}</b> aggregate (best 7)</div>
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-label">Mean Grade</div>
+          <div class="mean-badge">${grade}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Mean Points</div>
+          <div class="stat-value">${mean.toFixed(2)}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Aggregate (best 7)</div>
+          <div class="stat-value">${aggregate}</div>
+        </div>
+      </div>
+      <div class="eligibility-summary">
+        <span class="pill green">✅ ${qualified.length} Eligible</span>
+        <span class="pill red">❌ ${notQualified.length} Not Eligible</span>
+      </div>
+      <button class="share-btn" onclick="shareResults('${grade}', ${mean.toFixed(2)}, ${qualified.length})">
+        📤 Share My Results
+      </button>
     </div>
-    <div class="courses-label">✅ Courses You Qualify For (${qualified.length})</div>
   `;
 
-  if (qualified.length === 0) {
-    html += `<p style="color:#94a3b8; font-size:0.85rem; text-align:center;">No courses matched your grades yet. Keep pushing! 💪</p>`;
-  }
-
-  qualified.forEach(course => {
-    html += `
-      <div class="course-card qualified">
-        <div class="course-name">🎓 ${course.name}</div>
-        <div class="uni-list">Cluster pts: <b>${course.weightedCluster.toFixed(3)}</b><br>${course.universities.map(u => `• ${u.name} — cutoff ${u.cutoff}`).join("<br>")}</div>
-      </div>
-    `;
-  });
-
-  if (notQualified.length > 0) {
-    html += `<div class="courses-label" style="margin-top:20px;">⚠️ Just Out of Reach (${notQualified.length})</div>`;
-    notQualified.forEach(course => {
-      const minCutoff = Math.min(...course.allUniversities.map(u => u.cutoff));
-      html += `
-        <div class="course-card not-qualified">
-          <div class="course-name">${course.name}</div>
-          <div class="uni-list">Minimum cutoff needed: ${minCutoff}</div>
-        </div>
-      `;
-    });
-  }
-
-  document.getElementById("result").innerHTML = html;
+  document.getElementById("result").innerHTML = headerHTML;
+  renderCourseCards(courseResults);
+  document.getElementById("result").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function calculate() {
@@ -129,11 +281,20 @@ function calculate() {
     return;
   }
 
-  const mean = total / count;
-  const grade = getMeanGrade(mean);
-  const courseResults = evaluateCourses(data, aggregate);
+  document.getElementById("loading").classList.remove("hidden");
+  document.getElementById("result").innerHTML = "";
+  document.getElementById("filters").classList.add("hidden");
 
-  renderResults(mean, grade, aggregate, courseResults);
+  setTimeout(() => {
+    const mean = total / count;
+    const grade = getMeanGrade(mean);
+    allCourseResults = evaluateCourses(data, aggregate);
+
+    document.getElementById("loading").classList.add("hidden");
+    document.getElementById("filters").classList.remove("hidden");
+
+    renderResults(mean, grade, aggregate, allCourseResults);
+  }, 600);
 }
 
 initSubjects();
