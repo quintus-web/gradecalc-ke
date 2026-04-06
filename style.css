@@ -40,8 +40,9 @@ body {
   margin: -20px auto 0;
   background: #1e293b;
   border-radius: 16px;
-  padding: 24px 20px;
+  padding: 24px 16px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  width: calc(100% - 32px);
 }
 
 .step-label {
@@ -89,13 +90,13 @@ body {
 }
 
 .subject-item select {
-  padding: 10px 12px;
+  padding: 12px 12px;
   border-radius: 8px;
   border: 2px solid #334155;
   background: #0f172a;
   color: #e2e8f0;
   font-family: 'Poppins', Arial, sans-serif;
-  font-size: 0.95rem;
+  font-size: 1rem;
   cursor: pointer;
   transition: border-color 0.2s;
   appearance: none;
@@ -103,6 +104,7 @@ body {
   background-repeat: no-repeat;
   background-position: right 10px center;
   padding-right: 30px;
+  min-height: 46px;
 }
 
 .subject-item select:focus {
@@ -113,7 +115,7 @@ body {
 /* BUTTON */
 .calc-btn {
   width: 100%;
-  padding: 14px;
+  padding: 16px 14px;
   background: linear-gradient(135deg, #0ea5e9, #6366f1);
   color: white;
   font-family: 'Poppins', Arial, sans-serif;
@@ -124,6 +126,8 @@ body {
   cursor: pointer;
   letter-spacing: 0.5px;
   transition: opacity 0.2s, transform 0.1s;
+  min-height: 52px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .calc-btn:hover { opacity: 0.9; }
@@ -137,7 +141,7 @@ body {
 }
 
 .reset-btn {
-  padding: 14px 18px;
+  padding: 16px 18px;
   background: #1e293b;
   color: #94a3b8;
   font-family: 'Poppins', Arial, sans-serif;
@@ -147,6 +151,8 @@ body {
   border-radius: 10px;
   cursor: pointer;
   transition: border-color 0.2s, color 0.2s;
+  min-height: 52px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .reset-btn:hover { border-color: #0ea5e9; color: #e2e8f0; }
@@ -491,19 +497,21 @@ body {
   padding: 0 16px;
   gap: 8px;
   transform: translateY(-1px);
+  width: calc(100% - 0px);
 }
 
 .tab-link {
   flex: 1;
   text-align: center;
-  padding: 12px;
+  padding: 14px 12px;
   background: #1e293b;
   color: #64748b;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   font-weight: 600;
   text-decoration: none;
   border-radius: 0 0 10px 10px;
   transition: background 0.2s, color 0.2s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .tab-link:hover { color: #e2e8f0; }
@@ -795,10 +803,42 @@ footer {
 footer a { color: #475569; text-decoration: underline; }
 
 /* MOBILE */
-@media (max-width: 420px) {
-  .subjects-grid { grid-template-columns: 1fr; }
-  .filter-row    { grid-template-columns: 1fr; }
-  .stats-row     { grid-template-columns: 1fr 1fr; }
-  .hero h1       { font-size: 1.8rem; }
-  .range-item    { flex-direction: column; gap: 4px; }
+@media (max-width: 480px) {
+  .hero { padding: 28px 16px 24px; }
+  .hero h1 { font-size: 1.8rem; }
+  .subtitle { font-size: 0.85rem; }
+
+  .container {
+    width: calc(100% - 24px);
+    padding: 20px 14px;
+    border-radius: 12px;
+    margin-top: -16px;
+  }
+
+  .tab-nav { padding: 0 12px; }
+
+  .subjects-grid { grid-template-columns: 1fr; gap: 10px; }
+
+  .subject-item select { font-size: 1rem; min-height: 48px; }
+
+  .filter-row { grid-template-columns: 1fr; }
+
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .stat-box  { padding: 10px 6px; }
+  .stat-value { font-size: 1.2rem; }
+  .mean-badge { font-size: 1.3rem; }
+
+  .course-card { padding: 12px 14px; }
+  .course-name { font-size: 0.88rem; }
+
+  .uni-row { font-size: 0.78rem; }
+
+  .range-item { flex-direction: column; gap: 4px; }
+
+  .guide-wrap { padding: 0 12px; }
+  .guide-card { padding: 18px 14px; }
+
+  .quick-info { padding: 0 12px; }
+
+  footer { font-size: 0.75rem; }
 }
