@@ -107,12 +107,13 @@ function getCourseCategory(courseName) {
 }
 
 function evaluateCourses(subjectGrades, aggregate) {
-  return coursesData.map(course => {
+  return coursesData.map((course, i) => {
     const weighted = getWeightedCluster(subjectGrades, course.cluster);
     const qualifiedUnis = course.universities.filter(uni => weighted >= uni.cutoff);
     const minCutoff = Math.min(...course.universities.map(u => u.cutoff));
     const gap = minCutoff - weighted;
     return {
+      _id: "c" + i,
       name: course.name,
       category: getCourseCategory(course.name),
       weightedCluster: weighted,
@@ -164,6 +165,34 @@ function applyFilters() {
   renderCourseCards(filtered);
 }
 
+function renderUniList(unis, cardId, showAll) {
+  const visible = showAll ? unis : unis.slice(0, 5);
+  let html = visible.map(u => `
+    <div class="uni-row">
+      <span>🏫 ${u.name}</span>
+      <span class="cutoff-tag">${u.cutoff}</span>
+    </div>
+  `).join("");
+  if (unis.length > 5) {
+    if (showAll) {
+      html += `<div class="show-more" onclick="toggleUnis('${cardId}')">Show less ▲</div>`;
+    } else {
+      html += `<div class="show-more" onclick="toggleUnis('${cardId}')">+${unis.length - 5} more universities ▼</div>`;
+    }
+  }
+  return html;
+}
+
+const uniExpandState = {};
+function toggleUnis(cardId) {
+  uniExpandState[cardId] = !uniExpandState[cardId];
+  const el = document.getElementById("unis-" + cardId);
+  const course = allCourseResults.find(c => c._id === cardId);
+  if (!course) return;
+  const unis = course.qualified ? course.universities : course.allUniversities;
+  el.innerHTML = renderUniList(unis, cardId, uniExpandState[cardId]);
+}
+
 function renderCourseCards(results) {
   const qualified = results.filter(c => c.qualified);
   const notQualified = results.filter(c => !c.qualified);
@@ -181,7 +210,7 @@ function renderCourseCards(results) {
   }
 
   qualified.forEach(course => {
-    const id = "q-" + Math.random().toString(36).slice(2);
+    const id = course._id;
     html += `
       <div class="course-card qualified fade-in">
         <div class="course-name" onclick="toggleCard('${id}')">
@@ -189,25 +218,28 @@ function renderCourseCards(results) {
           <span class="toggle-icon" id="icon-${id}">▼</span>
         </div>
         <div class="course-meta">
-          <span class="badge badge-green">Cluster: ${course.weightedCluster.toFixed(2)} pts</span>
+          <span class="badge badge-green">${course.weightedCluster} pts</span>
           <span class="badge badge-blue">${course.category}</span>
+          <span class="badge badge-green">${course.universities.length} uni${course.universities.length > 1 ? 's' : ''}</span>
         </div>
-        <div class="uni-list" id="${id}">
-          ${course.universities.map(u => `
-            <div class="uni-row">
-              <span>🏫 ${u.name}</span>
-              <span class="cutoff-tag">Cutoff: ${u.cutoff}</span>
-            </div>
-          `).join("")}
+        <div class="uni-list hidden" id="${id}">
+          <div id="unis-${id}">${renderUniList(course.universities, id, false)}</div>
         </div>
       </div>
     `;
   });
 
   if (notQualified.length > 0) {
-    html += `<div class="courses-label" style="margin-top:24px;">❌ Not Yet Eligible (${notQualified.length})</div>`;
+    const nid = "notq-section";
+    html += `
+      <div class="courses-label" style="margin-top:24px;cursor:pointer;" onclick="toggleCard('${nid}')">
+        ❌ Not Yet Eligible (${notQualified.length})
+        <span class="toggle-icon" id="icon-${nid}">▼</span>
+      </div>
+      <div class="hidden" id="${nid}">
+    `;
     notQualified.forEach(course => {
-      const id = "n-" + Math.random().toString(36).slice(2);
+      const id = course._id;
       const pct = Math.min(100, Math.round((course.weightedCluster / course.minCutoff) * 100));
       html += `
         <div class="course-card not-qualified fade-in">
@@ -216,22 +248,18 @@ function renderCourseCards(results) {
             <span class="toggle-icon" id="icon-${id}">▼</span>
           </div>
           <div class="course-meta">
-            <span class="badge badge-orange">Your pts: ${course.weightedCluster.toFixed(2)}</span>
-            <span class="badge badge-red">Need +${course.gap.toFixed(2)} more</span>
+            <span class="badge badge-orange">${course.weightedCluster} pts</span>
+            <span class="badge badge-red">Need +${course.gap.toFixed(1)} more</span>
           </div>
           <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-          <div class="progress-label">${pct}% of minimum cutoff (${course.minCutoff})</div>
+          <div class="progress-label">${pct}% of min cutoff (${course.minCutoff})</div>
           <div class="uni-list hidden" id="${id}">
-            ${course.allUniversities.map(u => `
-              <div class="uni-row">
-                <span>🏫 ${u.name}</span>
-                <span class="cutoff-tag">Cutoff: ${u.cutoff}</span>
-              </div>
-            `).join("")}
+            <div id="unis-${id}">${renderUniList(course.allUniversities, id, false)}</div>
           </div>
         </div>
       `;
     });
+    html += `</div>`;
   }
 
   container.innerHTML = html;
